@@ -27,3 +27,21 @@ Environment variables corresponding to the generated secrets will be present.  F
 ## Engine starts container and runs the service
 
     $ ./bin/run
+
+## Other commands
+
+### Backup
+
+    $ ./bin/backup
+
+### Client connection
+
+    $ ./bin/client
+
+### Extra
+
+    $ ./bin/extra help
+    foo: does the foo
+    baz: also baz is possible
+
+    $ ./bin/extra foo \[args]
