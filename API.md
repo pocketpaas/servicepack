@@ -19,10 +19,22 @@ This script should do everything to set up the service, including installing pac
 
 Environment variables corresponding to the generated secrets will be present.  For example if the secret 'mysql\_root\_password' is requested, then MYSQL\_ROOT\_PASSWORD will be in the environment with a generated password inside.
 
-## Engine queries additional variables
+### Phased build
+
+The build can happen in two phases, if desired.  The phase is passed in as an argument to the build script.
+
+* `all` - If this is specified, then both the base setup and the custom setup for this service should be performed.  This is the default.
+* `base` - Only do what is required for all services of this type.  If this is specified, then no secret environment variables will be passed.
+* `setup` - Only do the setup for this specific instance of the service.
+
+## Engine queries additional environment variables
+
+These variables can contain special keys to instruct the engine where to insert container information, such as %IP for the ip address.
 
     $ ./bin/query env
     MYSQL_PORT=3306
+    MYSQL_USER=user
+    MYSQL_HOST=%IP
 
 ## Engine starts container and runs the service
 
@@ -45,3 +57,25 @@ Environment variables corresponding to the generated secrets will be present.  F
     baz: also baz is possible
 
     $ ./bin/extra foo \[args]
+
+# Running 'servicepack'
+
+## Building a service
+
+Pass in the servicepack directory and the docker repo and tag to use.  The output will be the environment variables that should 
+
+    $ servicepack build pack_dir repo [tag]
+
+Example:
+
+    $ git clone https://github.com/pocketpaas/servicepack-mysql.git
+    $ servicepack build servicepack-mysql mysql
+    MYSQL_ROOT_PASSWORD=ifjalfjalqwj
+    MYSQL_USER_PASSWORD=3fjq3ifjalwj
+    MYSQL_PORT=3306
+    MYSQL_USER=user
+    MYSQL_HOST=%IP
+    $ docker images
+    REPOSITORY           TAG         ID                  CREATED             SIZE
+    servicepack/mysql    latest      f42b0cb83738        2 seconds ago       8.678 MB (virtual 200 MB)
+
