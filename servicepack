@@ -1,0 +1,22 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+my $OS_MAP = {
+    'ubuntu/13.04' => 'lopter/raring-base:latest',
+    'ubuntu/12.10' => 'ubuntu:12.10',
+    'ubuntu/12.04' => 'ubuntu:12.04',
+};
+
+my $dir_to_build = shift;
+
+my $query_script = "$dir_to_build/bin/query";
+
+-e $query_script || die "Unable to find query script.";
+
+my $os = `$query_script os`;
+chomp($os);
+$os || die "OS not defined.\n";
+my $docker_base = $OS_MAP->{$os} || die "No docker image for OS $os.\n";
+

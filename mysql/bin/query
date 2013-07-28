@@ -1,0 +1,10 @@
+#!/bin/bash
+
+TYPE=$1
+
+case $TYPE in
+    os)
+        echo 'ubuntu/13.04';;
+    secrets)
+        echo 'root_password';;
+esac
