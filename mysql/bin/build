@@ -1,0 +1,31 @@
+#!/bin/bash
+
+BUILD_TYPE=${1:-all}
+
+DEFAULT_PASS=testpass
+
+if [[ $BUILD_TYPE = 'all' || $BUILD_TYPE = 'base' ]]; then
+
+    # neuter upstart
+    dpkg-divert --local --rename --add /sbin/initctl
+    ln -s /bin/true /sbin/initctl
+
+    # set defaults
+    echo "mysql-server-5.5  mysql-server/root_password_again string  $DEFAULT_PASS" | debconf-set-selections
+    echo "mysql-server-5.5  mysql-server/root_password       string  $DEFAULT_PASS" | debconf-set-selections
+
+    # install mysql server
+    apt-get update
+    DEBIAN_FRONTEND=noninteractive apt-get install mysql-server -y
+
+fi
+
+if [[ $BUILD_TYPE = 'all' || $BUILD_TYPE = 'setup' ]]; then
+    echo "setting up service"
+
+    # TODO doesn't quite work yet
+    /usr/bin/mysqld_safe &
+    sleep 5
+    mysqladmin password -u root -p$DEFAULT_PASS $MYSQL_ROOT_PASSWORD
+fi
+

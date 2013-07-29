@@ -3,13 +3,18 @@
 use strict;
 use warnings;
 
+use File::Temp qw(tempdir);
+
 my $OS_MAP = {
     'ubuntu/13.04' => 'lopter/raring-base:latest',
     'ubuntu/12.10' => 'ubuntu:12.10',
     'ubuntu/12.04' => 'ubuntu:12.04',
 };
 
+my $command = shift;
 my $dir_to_build = shift;
+my $repo = shift;
+my $tag = shift || 'latest';
 
 my $query_script = "$dir_to_build/bin/query";
 
@@ -20,3 +25,24 @@ chomp($os);
 $os || die "OS not defined.\n";
 my $docker_base = $OS_MAP->{$os} || die "No docker image for OS $os.\n";
 
+#my $build_dir = tempdir( CLEANUP => 1 );
+my $build_dir = tempdir( );
+
+# TODO generate secrets
+my $ENV_VARS = '';
+
+system("tar -C $dir_to_build/ -cvf - . | tar -C $build_dir -xf -");
+
+open my $dockerfile, ">", "$build_dir/Dockerfile";
+print $dockerfile <<BUILD;
+from $docker_base
+add  . /service
+env  MYSQL_ROOT_PASSWORD foobar
+run  /service/bin/build all
+BUILD
+
+print "check out $build_dir\n";
+
+chdir $dir_to_build;
+system('ls');
+system("docker build -t $repo:$tag .");

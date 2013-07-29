@@ -4,7 +4,7 @@ TYPE=$1
 
 case $TYPE in
     os)
-        echo 'ubuntu/13.04';;
+        echo 'ubuntu/12.10';;
     secrets)
         echo 'root_password';;
 esac
