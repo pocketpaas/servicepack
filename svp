@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use File::Temp qw(tempdir);
+use Cwd;
 
 my $OS_MAP = {
     'ubuntu/13.04' => 'lopter/raring-base:latest',
@@ -12,37 +13,66 @@ my $OS_MAP = {
 };
 
 my $command = shift;
-my $dir_to_build = shift;
-my $repo = shift;
-my $tag = shift || 'latest';
 
-my $query_script = "$dir_to_build/bin/query";
+if ( $command eq 'build' ) {
 
--e $query_script || die "Unable to find query script.";
+    my $dir_to_build = shift;
+    my $repo         = shift;
+    my $tag          = shift || 'latest';
 
-my $os = `$query_script os`;
-chomp($os);
-$os || die "OS not defined.\n";
-my $docker_base = $OS_MAP->{$os} || die "No docker image for OS $os.\n";
+    my $query_script = "$dir_to_build/bin/query";
 
-#my $build_dir = tempdir( CLEANUP => 1 );
-my $build_dir = tempdir( );
+    -e $query_script || die "Unable to find query script.";
 
-# TODO generate secrets
-my $ENV_VARS = '';
+    my $os = `$query_script os`;
+    chomp($os);
+    $os || die "OS not defined.\n";
+    my $docker_base = $OS_MAP->{$os} || die "No docker image for OS $os.\n";
 
-system("tar -C $dir_to_build/ -cvf - . | tar -C $build_dir -xf -");
+    my $build_dir = tempdir( CLEANUP => 1 );
 
-open my $dockerfile, ">", "$build_dir/Dockerfile";
-print $dockerfile <<BUILD;
+    system("tar -C $dir_to_build/ -cvf - . | tar -C $build_dir -xf -");
+
+    open my $dockerfile, ">", "$build_dir/Dockerfile";
+    print $dockerfile <<BUILD;
 from $docker_base
 add  . /service
 env  MYSQL_ROOT_PASSWORD foobar
-run  /service/bin/build all
+run  /service/bin/build base
 BUILD
+    close $dockerfile;
 
-print "check out $build_dir\n";
+    print "check out $build_dir\n";
 
-chdir $dir_to_build;
-system('ls');
-system("docker build -t $repo:$tag .");
+    my $previous_dir = getcwd;
+    chdir $build_dir;
+    system("docker build -t $repo:$tag .");
+    chdir $previous_dir;
+}
+else {
+    my $image = shift;
+    my $repo  = shift;
+    my $tag   = shift || 'latest';
+
+    #my $build_dir = tempdir( CLEANUP => 1 );
+    my $build_dir = tempdir();
+
+    # TODO generate secrets
+    my $ENV_VARS = '';
+
+    open my $dockerfile, ">", "$build_dir/Dockerfile";
+    print $dockerfile <<BUILD;
+from $image
+env  MYSQL_ROOT_PASSWORD foobar
+run  /service/bin/build setup
+BUILD
+    close $dockerfile;
+
+    print "check out $build_dir\n";
+
+    my $previous_dir = getcwd;
+    chdir $build_dir;
+    system("docker build -t $repo:$tag .");
+    chdir $previous_dir;
+}
+

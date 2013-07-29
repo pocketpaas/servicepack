@@ -10,13 +10,23 @@ if [[ $BUILD_TYPE = 'all' || $BUILD_TYPE = 'base' ]]; then
     dpkg-divert --local --rename --add /sbin/initctl
     ln -s /bin/true /sbin/initctl
 
+    apt-get update
+
+    DEBIAN_FRONTEND=noninteractive apt-get install debconf-utils -y
+
+    debconf-get-selections | grep mysql-server | grep password
+
     # set defaults
-    echo "mysql-server-5.5  mysql-server/root_password_again string  $DEFAULT_PASS" | debconf-set-selections
-    echo "mysql-server-5.5  mysql-server/root_password       string  $DEFAULT_PASS" | debconf-set-selections
+    echo "mysql-server-5.5  mysql-server/root_password_again password  $DEFAULT_PASS" | debconf-set-selections
+    echo "mysql-server-5.5  mysql-server/root_password       password  $DEFAULT_PASS" | debconf-set-selections
+
+    debconf-get-selections | grep mysql-server | grep password
 
     # install mysql server
-    apt-get update
-    DEBIAN_FRONTEND=noninteractive apt-get install mysql-server -y
+    DEBIAN_FRONTEND=noninteractive apt-get install mysql-server-5.5 -y
+
+    debconf-get-selections | grep mysql-server | grep password
+
 
 fi
 
@@ -26,6 +36,7 @@ if [[ $BUILD_TYPE = 'all' || $BUILD_TYPE = 'setup' ]]; then
     # TODO doesn't quite work yet
     /usr/bin/mysqld_safe &
     sleep 5
+    echo mysqladmin password -u root -p$DEFAULT_PASS $MYSQL_ROOT_PASSWORD
     mysqladmin password -u root -p$DEFAULT_PASS $MYSQL_ROOT_PASSWORD
 fi
 
