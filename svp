@@ -37,7 +37,6 @@ if ( $command eq 'build' ) {
     print $dockerfile <<BUILD;
 from $docker_base
 add  . /service
-env  MYSQL_ROOT_PASSWORD foobar
 run  /service/bin/build base
 BUILD
     close $dockerfile;
