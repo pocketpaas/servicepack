@@ -41,13 +41,42 @@ my $commands = {
 
         system("tar -C $dir_to_build/ -cvf - . | tar -C $build_dir -xf -");
 
+        # TODO make this dockerfile not ubuntu specific
         open my $dockerfile, ">", "$build_dir/Dockerfile";
         print $dockerfile <<BUILD;
 from $docker_base
+run     apt-get update
+run     DEBIAN_FRONTEND=noninteractive apt-get install openssh-server supervisor -y
+run     mkdir -p /var/run/sshd
+run     mkdir -p /var/log/supervisor
+run     locale-gen en_US en_US.UTF-8
+add     supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+run     /bin/sh -c 'echo root:testpass | chpasswd'
 add     . /service
 run     /service/bin/build base
+expose  22
+cmd     ["/usr/bin/supervisord", "-n"]
 BUILD
         close $dockerfile;
+
+        open my $supervisor, ">", "$build_dir/supervisord.conf";
+        print $supervisor <<SUPERVISOR;
+[supervisord]
+nodaemon=true
+
+[program:sshd]
+command=/usr/sbin/sshd -D
+stdout_logfile=/var/log/supervisor/%(program_name)s.log
+stderr_logfile=/var/log/supervisor/%(program_name)s.log
+autorestart=true
+
+[program:mongod]
+command=/service/bin/run
+stdout_logfile=/var/log/supervisor/%(program_name)s.log
+stderr_logfile=/var/log/supervisor/%(program_name)s.log
+autorestart=true
+SUPERVISOR
+        close $supervisor;
 
         DEBUG("docker build dir: $build_dir");
 
@@ -75,8 +104,10 @@ BUILD
         open my $dockerfile, ">", "$build_dir/Dockerfile";
         print $dockerfile <<BUILD;
 from $image
-env  MYSQL_ROOT_PASSWORD foobar
-run  /service/bin/build setup
+env     MYSQL_ROOT_PASSWORD foobar
+run     /service/bin/build setup
+expose  22
+cmd     ["/usr/bin/supervisord", "-n"]
 BUILD
         close $dockerfile;
 
