@@ -5,73 +5,180 @@ use warnings;
 
 use File::Temp qw(tempdir);
 use Cwd;
+use Getopt::Long qw(GetOptionsFromArray);
+
+our $VERSION = '0.1';
 
 my $OS_MAP = {
     'ubuntu/13.04' => 'lopter/raring-base:latest',
     'ubuntu/12.10' => 'ubuntu:12.10',
-    'ubuntu/12.04' => 'ubuntu:12.04',
 };
 
-my $command = shift;
+my %opts;
 
-if ( $command eq 'build' ) {
+my $commands = {
+    'build' => sub {
+        my $argv = shift;
 
-    my $dir_to_build = shift;
-    my $repo         = shift;
-    my $tag          = shift || 'latest';
+        GetOptionsFromArray( $argv, \%opts, 'build-dir|b=s', 'tag|t=s' );
 
-    my $query_script = "$dir_to_build/bin/query";
+        my $dir_to_build = $opts{'build-dir'};
+        my $tag          = $opts{'tag'};
 
-    -e $query_script || die "Unable to find query script.";
+        $tag ||= 'latest';
 
-    my $os = `$query_script os`;
-    chomp($os);
-    $os || die "OS not defined.\n";
-    my $docker_base = $OS_MAP->{$os} || die "No docker image for OS $os.\n";
+        my $query_script = "$dir_to_build/bin/query";
 
-    my $build_dir = tempdir( CLEANUP => 1 );
+        -e $query_script || die "Unable to find query script.";
 
-    system("tar -C $dir_to_build/ -cvf - . | tar -C $build_dir -xf -");
+        my $os = `$query_script os`;
+        chomp($os);
+        $os || die "OS not defined.\n";
+        my $docker_base = $OS_MAP->{$os}
+            || die "No docker image for OS $os.\n";
 
-    open my $dockerfile, ">", "$build_dir/Dockerfile";
-    print $dockerfile <<BUILD;
+        my $build_dir = tempdir( CLEANUP => 1 );
+
+        system("tar -C $dir_to_build/ -cvf - . | tar -C $build_dir -xf -");
+
+        open my $dockerfile, ">", "$build_dir/Dockerfile";
+        print $dockerfile <<BUILD;
 from $docker_base
-add  . /service
-run  /service/bin/build base
+add     . /service
+run     /service/bin/build base
 BUILD
-    close $dockerfile;
+        close $dockerfile;
 
-    print "check out $build_dir\n";
+        DEBUG("docker build dir: $build_dir");
 
-    my $previous_dir = getcwd;
-    chdir $build_dir;
-    system("docker build -t $repo:$tag .");
-    chdir $previous_dir;
-}
-else {
-    my $image = shift;
-    my $repo  = shift;
-    my $tag   = shift || 'latest';
+        my $previous_dir = getcwd;
+        chdir $build_dir;
+        system("docker build -t $tag .");
+        chdir $previous_dir;
+    },
+    'setup' => sub {
+        my $argv = shift;
 
-    #my $build_dir = tempdir( CLEANUP => 1 );
-    my $build_dir = tempdir();
+        GetOptionsFromArray( $argv, \%opts, 'build-dir|b=s', 'tag|t=s',
+            'image|i=s' );
 
-    # TODO generate secrets
-    my $ENV_VARS = '';
+        my $dir_to_build = $opts{'build-dir'};
+        my $image        = $opts{'image'};
+        my $tag          = $opts{'tag'};
 
-    open my $dockerfile, ">", "$build_dir/Dockerfile";
-    print $dockerfile <<BUILD;
+        #my $build_dir = tempdir( CLEANUP => 1 );
+        my $build_dir = tempdir();
+
+        # TODO generate secrets
+        my $ENV_VARS = '';
+
+        open my $dockerfile, ">", "$build_dir/Dockerfile";
+        print $dockerfile <<BUILD;
 from $image
 env  MYSQL_ROOT_PASSWORD foobar
 run  /service/bin/build setup
 BUILD
-    close $dockerfile;
+        close $dockerfile;
 
-    print "check out $build_dir\n";
+        DEBUG("docker build dir: $build_dir");
 
-    my $previous_dir = getcwd;
-    chdir $build_dir;
-    system("docker build -t $repo:$tag .");
-    chdir $previous_dir;
+        my $previous_dir = getcwd;
+        chdir $build_dir;
+        system("docker build -t $tag .");
+        chdir $previous_dir;
+    },
+    'help' => sub {
+        my $argv = shift;
+
+        my $command = shift @$argv;
+
+        if ($command) {
+            my %options = (
+                -verbose    => 99,
+                -exitstatus => 0,
+                -sections   => uc($command),
+            );
+
+            pod2usage(%options);
+        }
+        else {
+            pod2usage(2);
+        }
+    },
+};
+
+run_svp(@ARGV) unless defined caller;
+
+sub run_svp {
+    my (@argv) = @_;
+
+    # set options to nothing so that running multiple times in tests
+    # does not reuse options
+    %opts = ();
+
+    my $command;
+
+    if ( scalar(@argv) == 0 || $argv[0] =~ /^-/ ) {
+
+        # check to make sure there's not a subcommand later in the arg list
+        if ( grep { exists $commands->{$_} } @argv ) {
+            ERROR("The command should be first.");
+            exit(-2);
+        }
+        $command = 'help';
+    }
+    else {
+        $command = $argv[0];
+    }
+
+    if ( exists $commands->{$command} ) {
+
+        # parse global options first
+        Getopt::Long::Configure('pass_through');
+        GetOptionsFromArray(
+            \@argv,    \%opts, 'verbose', 'quiet',
+            'dry-run', 'help', 'version'
+        );
+        Getopt::Long::Configure('no_pass_through');
+    }
+
+    if ( exists $commands->{$command} ) {
+        if ( $opts{'help'} ) {
+            $commands->{'help'}->( [$command] );
+        }
+        elsif ( $opts{'version'} ) {
+            show_version();
+        }
+        else {
+            shift(@argv);    # remove the command from the array
+            $commands->{$command}->( \@argv );
+        }
+    }
+    else {
+
+        ERROR("Unknown command $command.");
+        exit(-2);
+    }
+}
+
+sub show_version {
+    print "svp version $VERSION\n";
+}
+
+# a few log4perl-alikes
+sub ERROR {
+    printf "ERROR: %s\n", shift;
+}
+
+sub WARN {
+    printf "WARN: %s\n", shift;
+}
+
+sub INFO {
+    printf "INFO: %s\n", shift if !$opts{quiet};
+}
+
+sub DEBUG {
+    printf "DEBUG: %s\n", shift if $opts{verbose};
 }
 
