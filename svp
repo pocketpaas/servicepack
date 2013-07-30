@@ -6,6 +6,7 @@ use warnings;
 use File::Temp qw(tempdir);
 use Cwd;
 use Getopt::Long qw(GetOptionsFromArray);
+use File::Copy;
 
 our $VERSION = '0.1';
 
@@ -42,22 +43,40 @@ my $commands = {
         system("tar -C $dir_to_build/ -cvf - . | tar -C $build_dir -xf -");
 
         # TODO make this dockerfile not ubuntu specific
+        # TODO get rid of root password setting
         open my $dockerfile, ">", "$build_dir/Dockerfile";
         print $dockerfile <<BUILD;
 from $docker_base
 run     apt-get update
+
+# setup sshd and supervisor
 run     DEBIAN_FRONTEND=noninteractive apt-get install openssh-server supervisor -y
 run     mkdir -p /var/run/sshd
 run     mkdir -p /var/log/supervisor
 run     locale-gen en_US en_US.UTF-8
 add     supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# set root password
 run     /bin/sh -c 'echo root:testpass | chpasswd'
+
+# configure keyed ssh access
+run     mkdir -p /root/.ssh
+run     chmod 600 /root/.ssh
+add     authorized_keys /root/.ssh/authorized_keys
+run     chmod 600 /root/.ssh/authorized_keys
+run     chown root.root /root/.ssh/authorized_keys
+
+# add service scripts and build
 add     . /service
 run     /service/bin/build base
 expose  22
 cmd     ["/usr/bin/supervisord", "-n"]
 BUILD
         close $dockerfile;
+
+        if ( $opts{'ssh-pubkey-file'} ) {
+            copy( $opts{'ssh-pubkey-file'}, "$build_dir/authorized_keys" );
+        }
 
         open my $supervisor, ">", "$build_dir/supervisord.conf";
         print $supervisor <<SUPERVISOR;
@@ -166,10 +185,8 @@ sub run_svp {
 
         # parse global options first
         Getopt::Long::Configure('pass_through');
-        GetOptionsFromArray(
-            \@argv,    \%opts, 'verbose', 'quiet',
-            'dry-run', 'help', 'version'
-        );
+        GetOptionsFromArray( \@argv, \%opts, 'verbose', 'quiet',
+            'dry-run', 'help', 'version', 'ssh-pubkey-file|s=s' );
         Getopt::Long::Configure('no_pass_through');
     }
 
