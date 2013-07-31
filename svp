@@ -23,8 +23,10 @@ my $commands = {
 
         GetOptionsFromArray( $argv, \%opts, 'build-dir|b=s', 'tag|t=s' );
 
-        my $dir_to_build = $opts{'build-dir'};
-        my $tag          = $opts{'tag'};
+        my $dir_to_build = $opts{'build-dir'}
+            || die "Specify build dir with --build-dir or -b.\n";
+        my $tag = $opts{'tag'}
+            || die "Specify tag with --tag or -t.\n";
 
         $tag ||= 'latest';
 
