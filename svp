@@ -122,10 +122,13 @@ SUPERVISOR
         # TODO generate secrets
         my $ENV_VARS = '';
 
+        system("tar -C $dir_to_build/ -cvf - . | tar -C $build_dir -xf -");
+
         open my $dockerfile, ">", "$build_dir/Dockerfile";
         print $dockerfile <<BUILD;
 from $image
 env     MYSQL_ROOT_PASSWORD foobar
+add     . /service
 run     /service/bin/build setup
 expose  22
 cmd     ["/usr/bin/supervisord", "-n"]
