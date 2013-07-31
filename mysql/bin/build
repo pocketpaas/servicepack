@@ -2,8 +2,6 @@
 
 BUILD_TYPE=${1:-all}
 
-DEFAULT_PASS=testpass
-
 if [[ $BUILD_TYPE = 'all' || $BUILD_TYPE = 'base' ]]; then
 
     # neuter upstart
