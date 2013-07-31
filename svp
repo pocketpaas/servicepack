@@ -119,16 +119,28 @@ SUPERVISOR
         #my $build_dir = tempdir( CLEANUP => 1 );
         my $build_dir = tempdir();
 
-        # TODO generate secrets
-        my $ENV_VARS = '';
+        # generate secrets
+        my $SECRET_VARS = '';
+
+        my $query_script = "$dir_to_build/bin/query";
+        -e $query_script || die "Unable to find query script.";
+
+        my $secret_names = `$query_script secrets`;
+        chomp($secret_names);
+
+        if ($secret_names) {
+            foreach my $secret ( split( /\n/, $secret_names ) ) {
+                $SECRET_VARS .= "env $secret " . generate_secret();
+            }
+        }
 
         system("tar -C $dir_to_build/ -cvf - . | tar -C $build_dir -xf -");
 
         open my $dockerfile, ">", "$build_dir/Dockerfile";
         print $dockerfile <<BUILD;
 from $image
-env     MYSQL_ROOT_PASSWORD foobar
 add     . /service
+$SECRET_VARS
 run     /service/bin/build setup
 expose  22
 cmd     ["/usr/bin/supervisord", "-n"]
@@ -229,6 +241,17 @@ sub generate_ssh_key {
     }
 
     return "$svp_key_path.pub";
+}
+
+# TODO use a real random seed like Math::TrulyRandom to seed the generator
+sub generate_secret {
+
+    my @chars = ( 'a' .. 'z', 'A' .. 'Z', '0' .. '9' );
+
+    my $secret;
+    $secret .= $chars[ rand( scalar(@chars) ) ] for 1 .. 12;
+
+    return $secret;
 }
 
 # a few log4perl-alikes

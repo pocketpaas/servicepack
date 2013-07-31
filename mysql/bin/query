@@ -6,5 +6,5 @@ case $TYPE in
     os)
         echo 'ubuntu/12.10';;
     secrets)
-        echo 'root_password';;
+        echo 'MYSQL_ROOT_PASSWORD';;
 esac
