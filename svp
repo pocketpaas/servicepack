@@ -46,7 +46,6 @@ my $commands = {
         system("tar -C $dir_to_build/ -cvf - . | tar -C $build_dir -xf -");
 
         # TODO make this dockerfile not ubuntu specific
-        # TODO get rid of root password setting
         open my $dockerfile, ">", "$build_dir/Dockerfile";
         print $dockerfile <<BUILD;
 from $docker_base
@@ -58,9 +57,6 @@ run     mkdir -p /var/run/sshd
 run     mkdir -p /var/log/supervisor
 run     locale-gen en_US en_US.UTF-8
 add     supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-# set root password
-run     /bin/sh -c 'echo root:testpass | chpasswd'
 
 # configure keyed ssh access
 run     mkdir -p /root/.ssh
