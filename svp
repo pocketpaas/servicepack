@@ -7,6 +7,7 @@ use File::Temp qw(tempdir);
 use Cwd;
 use Getopt::Long qw(GetOptionsFromArray);
 use File::Copy;
+use File::Path qw(mkpath);
 
 our $VERSION = '0.1';
 
@@ -78,6 +79,9 @@ BUILD
 
         if ( $opts{'ssh-pubkey-file'} ) {
             copy( $opts{'ssh-pubkey-file'}, "$build_dir/authorized_keys" );
+        }
+        else {
+            copy( generate_ssh_key(), "$build_dir/authorized_keys" );
         }
 
         open my $supervisor, ">", "$build_dir/supervisord.conf";
@@ -216,6 +220,19 @@ sub run_svp {
 
 sub show_version {
     print "svp version $VERSION\n";
+}
+
+sub generate_ssh_key {
+    my $svp_key_dir  = "$ENV{HOME}/.servicepack/key";
+    my $svp_key_path = "$svp_key_dir/id_rsa";
+
+    if ( !-e $svp_key_path ) {
+        mkpath($svp_key_dir);
+        INFO("Generating SSH key for container access.");
+        system("ssh-keygen -t rsa -N '' -f $svp_key_path");
+    }
+
+    return "$svp_key_path.pub";
 }
 
 # a few log4perl-alikes
