@@ -20,5 +20,14 @@ if [[ $BUILD_TYPE = 'all' || $BUILD_TYPE = 'setup' ]]; then
     sleep 5
     echo "Setting root mysql password"
     mysql -u root -e "update user set password=password('$MYSQL_ROOT_PASSWORD')" mysql
+
+    # set configuration so that any mysql command just works
+    cat << EOF > /root/.my.cnf
+[client]
+host=localhost
+user=root
+password=$MYSQL_ROOT_PASSWORD
+EOF
+
 fi
 
