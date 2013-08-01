@@ -91,7 +91,7 @@ stdout_logfile=/var/log/supervisor/%(program_name)s.log
 stderr_logfile=/var/log/supervisor/%(program_name)s.log
 autorestart=true
 
-[program:mongod]
+[program:service]
 command=/service/bin/run
 stdout_logfile=/var/log/supervisor/%(program_name)s.log
 stderr_logfile=/var/log/supervisor/%(program_name)s.log
@@ -153,6 +153,26 @@ BUILD
         chdir $build_dir;
         system("docker build -t $tag .");
         chdir $previous_dir;
+    },
+    'client' => sub {
+        my $argv = shift;
+
+        GetOptionsFromArray( $argv, \%opts, 'container|c=s' );
+
+        my $container = $opts{'container'}
+            || die "Specify container with --container or -c.\n";
+
+        run_in_container( $container, '/service/bin/client' );
+    },
+    'shell' => sub {
+        my $argv = shift;
+
+        GetOptionsFromArray( $argv, \%opts, 'container|c=s' );
+
+        my $container = $opts{'container'}
+            || die "Specify container with --container or -c.\n";
+
+        run_in_container($container);
     },
     'help' => sub {
         my $argv = shift;
@@ -252,6 +272,21 @@ sub generate_secret {
     $secret .= $chars[ rand( scalar(@chars) ) ] for 1 .. 12;
 
     return $secret;
+}
+
+sub run_in_container {
+    my ( $container_id, @command_and_args ) = @_;
+
+    my $port = `docker port $container_id 22`;
+    chomp($port);
+
+    exec(
+        qw(ssh -t -i),      "$ENV{HOME}/.servicepack/key/id_rsa",
+        '-o',               'UserKnownHostsFile /dev/null',
+        '-o',               'StrictHostKeyChecking no',
+        '-p',               $port,
+        qw(root@localhost), @command_and_args
+    );
 }
 
 # a few log4perl-alikes
