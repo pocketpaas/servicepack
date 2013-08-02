@@ -7,4 +7,9 @@ case $TYPE in
         echo 'ubuntu/12.10';;
     secrets)
         echo 'MYSQL_ROOT_PASSWORD';;
+    env)
+        echo 'MYSQL_PORT=3306'
+        echo 'MYSQL_USER=root'
+        echo 'MYSQL_HOST=%IP'
+        ;;
 esac
