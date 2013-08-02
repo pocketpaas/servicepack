@@ -150,9 +150,13 @@ SUPERVISOR
         }
         $ALL_ENV_VARS .= `$query_script env`;
 
+        # TODO make this a command line option
+        #system( "tar -C $dir_to_build/ -cf - . | tar -C $build_dir -xf -" );
+
         open my $dockerfile, ">", "$build_dir/Dockerfile";
         print $dockerfile <<BUILD;
 from $image
+#add     . /service
 $SECRET_VARS
 run     /service/bin/build setup
 expose  22
