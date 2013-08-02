@@ -49,7 +49,7 @@ my $commands = {
 
         my $build_dir = tempdir( CLEANUP => 1 );
 
-        system( "tar -C $dir_to_build/ -cf - . | tar -C $build_dir -xf -" );
+        system("tar -C $dir_to_build/ -cf - . | tar -C $build_dir -xf -");
 
         # TODO make this dockerfile not ubuntu specific
         open my $dockerfile, ">", "$build_dir/Dockerfile";
