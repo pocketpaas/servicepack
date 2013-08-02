@@ -128,8 +128,7 @@ SUPERVISOR
             "Setting up $image and will tag with $tag.  See $log_file for details."
         );
 
-        #my $build_dir = tempdir( CLEANUP => 1 );
-        my $build_dir = tempdir();
+        my $build_dir = tempdir( CLEANUP => 1 );
 
         # generate secrets
         my $SECRET_VARS  = '';
