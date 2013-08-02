@@ -29,6 +29,12 @@ my $commands = {
         my $tag = $opts{'tag'}
             || die "Specify tag with --tag or -t.\n";
 
+        mkpath("$ENV{HOME}/.servicepack/logs");
+        my $log_file = "$ENV{HOME}/.servicepack/logs/build.log";
+        INFO(
+            "Building $dir_to_build to tag with $tag.  See $log_file for details."
+        );
+
         $tag ||= 'latest';
 
         my $query_script = "$dir_to_build/bin/query";
@@ -43,7 +49,7 @@ my $commands = {
 
         my $build_dir = tempdir( CLEANUP => 1 );
 
-        system("tar -C $dir_to_build/ -cvf - . | tar -C $build_dir -xf -");
+        system( "tar -C $dir_to_build/ -cf - . | tar -C $build_dir -xf -" );
 
         # TODO make this dockerfile not ubuntu specific
         open my $dockerfile, ">", "$build_dir/Dockerfile";
@@ -103,7 +109,7 @@ SUPERVISOR
 
         my $previous_dir = getcwd;
         chdir $build_dir;
-        system("docker build -t $tag .");
+        system("bash -c 'docker build -t $tag . &> $log_file'");
         chdir $previous_dir;
     },
     'setup' => sub {
@@ -116,11 +122,18 @@ SUPERVISOR
         my $image        = $opts{'image'};
         my $tag          = $opts{'tag'};
 
+        mkpath("$ENV{HOME}/.servicepack/logs");
+        my $log_file = "$ENV{HOME}/.servicepack/logs/setup.log";
+        INFO(
+            "Setting up $image and will tag with $tag.  See $log_file for details."
+        );
+
         #my $build_dir = tempdir( CLEANUP => 1 );
         my $build_dir = tempdir();
 
         # generate secrets
-        my $SECRET_VARS = '';
+        my $SECRET_VARS  = '';
+        my $ALL_ENV_VARS = '';
 
         my $query_script = "$dir_to_build/bin/query";
         -e $query_script || die "Unable to find query script.";
@@ -130,16 +143,15 @@ SUPERVISOR
 
         if ($secret_names) {
             foreach my $secret ( split( /\n/, $secret_names ) ) {
-                $SECRET_VARS .= "env $secret " . generate_secret();
+                my $secret_val = generate_secret();
+                $SECRET_VARS  .= "env $secret $secret_val";
+                $ALL_ENV_VARS .= "$secret=$secret_val";
             }
         }
-
-        system("tar -C $dir_to_build/ -cvf - . | tar -C $build_dir -xf -");
 
         open my $dockerfile, ">", "$build_dir/Dockerfile";
         print $dockerfile <<BUILD;
 from $image
-add     . /service
 $SECRET_VARS
 run     /service/bin/build setup
 expose  22
@@ -151,8 +163,10 @@ BUILD
 
         my $previous_dir = getcwd;
         chdir $build_dir;
-        system("docker build -t $tag .");
+        system("bash -c 'docker build -t $tag . &> $log_file'");
         chdir $previous_dir;
+
+        print "$ALL_ENV_VARS\n";
     },
     'client' => sub {
         my $argv = shift;
@@ -291,18 +305,18 @@ sub run_in_container {
 
 # a few log4perl-alikes
 sub ERROR {
-    printf "ERROR: %s\n", shift;
+    printf STDERR "ERROR: %s\n", shift;
 }
 
 sub WARN {
-    printf "WARN: %s\n", shift;
+    printf STDERR "WARN: %s\n", shift;
 }
 
 sub INFO {
-    printf "INFO: %s\n", shift if !$opts{quiet};
+    printf STDERR "INFO: %s\n", shift if !$opts{quiet};
 }
 
 sub DEBUG {
-    printf "DEBUG: %s\n", shift if $opts{verbose};
+    printf STDERR "DEBUG: %s\n", shift if $opts{verbose};
 }
 
