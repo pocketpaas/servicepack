@@ -143,7 +143,7 @@ SUPERVISOR
         if ($secret_names) {
             foreach my $secret ( split( /\n/, $secret_names ) ) {
                 my $secret_val = generate_secret();
-                $SECRET_VARS  .= "env $secret $secret_val";
+                $SECRET_VARS  .= "env $secret $secret_val\n";
                 $ALL_ENV_VARS .= "$secret=$secret_val\n";
             }
         }

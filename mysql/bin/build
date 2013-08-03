@@ -2,6 +2,9 @@
 
 BUILD_TYPE=${1:-all}
 
+# include shared variables
+. `dirname $0`/vars
+
 if [[ $BUILD_TYPE = 'all' || $BUILD_TYPE = 'base' ]]; then
 
     # neuter upstart
@@ -10,11 +13,13 @@ if [[ $BUILD_TYPE = 'all' || $BUILD_TYPE = 'base' ]]; then
 
     # install mysql server
     apt-get update
-    DEBIAN_FRONTEND=noninteractive apt-get install mysql-server-5.5 -y
+    DEBIAN_FRONTEND=noninteractive apt-get install mysql-server-5.5 pwgen -y
 fi
 
 if [[ $BUILD_TYPE = 'all' || $BUILD_TYPE = 'setup' ]]; then
     echo "setting up service"
+
+    MYSQL_ROOT_PASSWORD=$(pwgen 15 1)
 
     /usr/bin/mysqld_safe --skip-grant-tables &
     sleep 5
@@ -27,6 +32,28 @@ if [[ $BUILD_TYPE = 'all' || $BUILD_TYPE = 'setup' ]]; then
 host=localhost
 user=root
 password=$MYSQL_ROOT_PASSWORD
+EOF
+
+    # restart with grant tables enabled so that the GRANT statement works
+    killall mysqld
+    /usr/bin/mysqld_safe &
+    sleep 5
+
+    # create database and user
+    mysqladmin --defaults-file=/root/.my.cnf create $SERVICE_DB_NAME
+    mysql --defaults-file=/root/.my.cnf -e "CREATE USER '$SERVICE_DB_USER'@'%' IDENTIFIED BY '$MYSQL_USER_PASSWORD';"
+    mysql --defaults-file=/root/.my.cnf -e "GRANT ALL ON $SERVICE_DB_NAME.* TO '$SERVICE_DB_USER'@'%';"
+    mysql --defaults-file=/root/.my.cnf -e "CREATE USER '$SERVICE_DB_USER'@'localhost' IDENTIFIED BY '$MYSQL_USER_PASSWORD';"
+    mysql --defaults-file=/root/.my.cnf -e "GRANT ALL ON $SERVICE_DB_NAME.* TO '$SERVICE_DB_USER'@'localhost';"
+ 
+    # configure to listen on all interfaces
+    perl -p -i -e 's/127.0.0.1/0.0.0.0/g' /etc/mysql/my.cnf
+
+    cat << EOF > /root/user.my.cnf
+[client]
+host=localhost
+user=$SERVICE_DB_USER
+password=$MYSQL_USER_PASSWORD
 EOF
 
 fi
