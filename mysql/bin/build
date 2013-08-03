@@ -27,7 +27,7 @@ if [[ $BUILD_TYPE = 'all' || $BUILD_TYPE = 'setup' ]]; then
     mysql -u root -e "update user set password=password('$MYSQL_ROOT_PASSWORD')" mysql
 
     # set configuration so that any mysql command just works
-    cat << EOF > /root/.my.cnf
+    cat << EOF > /root/root.my.cnf
 [client]
 host=localhost
 user=root
@@ -40,20 +40,20 @@ EOF
     sleep 5
 
     # create database and user
-    mysqladmin --defaults-file=/root/.my.cnf create $SERVICE_DB_NAME
-    mysql --defaults-file=/root/.my.cnf -e "CREATE USER '$SERVICE_DB_USER'@'%' IDENTIFIED BY '$MYSQL_USER_PASSWORD';"
-    mysql --defaults-file=/root/.my.cnf -e "GRANT ALL ON $SERVICE_DB_NAME.* TO '$SERVICE_DB_USER'@'%';"
-    mysql --defaults-file=/root/.my.cnf -e "CREATE USER '$SERVICE_DB_USER'@'localhost' IDENTIFIED BY '$MYSQL_USER_PASSWORD';"
-    mysql --defaults-file=/root/.my.cnf -e "GRANT ALL ON $SERVICE_DB_NAME.* TO '$SERVICE_DB_USER'@'localhost';"
+    mysqladmin --defaults-file=/root/root.my.cnf create $SERVICE_DB_NAME
+    mysql --defaults-file=/root/root.my.cnf -e "CREATE USER '$SERVICE_DB_USER'@'%' IDENTIFIED BY '$MYSQL_PASSWORD';"
+    mysql --defaults-file=/root/root.my.cnf -e "GRANT ALL ON $SERVICE_DB_NAME.* TO '$SERVICE_DB_USER'@'%';"
+    mysql --defaults-file=/root/root.my.cnf -e "CREATE USER '$SERVICE_DB_USER'@'localhost' IDENTIFIED BY '$MYSQL_PASSWORD';"
+    mysql --defaults-file=/root/root.my.cnf -e "GRANT ALL ON $SERVICE_DB_NAME.* TO '$SERVICE_DB_USER'@'localhost';"
  
     # configure to listen on all interfaces
     perl -p -i -e 's/127.0.0.1/0.0.0.0/g' /etc/mysql/my.cnf
 
-    cat << EOF > /root/user.my.cnf
+    cat << EOF > /root/.my.cnf
 [client]
 host=localhost
 user=$SERVICE_DB_USER
-password=$MYSQL_USER_PASSWORD
+password=$MYSQL_PASSWORD
 EOF
 
 fi

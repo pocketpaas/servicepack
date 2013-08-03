@@ -9,7 +9,7 @@ case $TYPE in
     os)
         echo 'ubuntu/12.10';;
     secrets)
-        echo 'MYSQL_USER_PASSWORD';;
+        echo 'MYSQL_PASSWORD';;
     env)
         echo 'MYSQL_PORT=3306'
         echo "MYSQL_USER=$SERVICE_DB_USER"
