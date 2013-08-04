@@ -35,7 +35,10 @@ password=$MYSQL_ROOT_PASSWORD
 EOF
 
     # restart with grant tables enabled so that the GRANT statement works
-    killall mysqld
+    mysqladmin flush-tables
+    mysqladmin shutdown
+    sleep 5
+
     /usr/bin/mysqld_safe &
     sleep 5
 
@@ -55,6 +58,11 @@ host=localhost
 user=$SERVICE_DB_USER
 password=$MYSQL_PASSWORD
 EOF
+
+    # make sure mysqld shuts down ok
+    mysqladmin flush-tables
+    mysqladmin shutdown
+    sleep 5
 
 fi
 
