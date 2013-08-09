@@ -1,0 +1,12 @@
+#!/bin/bash
+
+TYPE=$1
+
+case $TYPE in
+    os)
+        echo 'ubuntu/12.10';;
+    env)
+        echo 'REDIS_PORT=6379'
+        echo 'REDIS_HOST=%IP'
+        ;;
+esac
