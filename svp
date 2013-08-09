@@ -16,6 +16,8 @@ my $OS_MAP = {
     'ubuntu/12.10' => 'ubuntu:12.10',
 };
 
+my $DOCKER_COMMAND = $ENV{DOCKER_COMMAND} || 'docker -H tcp://127.0.0.1:4243';
+
 my %opts;
 
 my $commands = {
@@ -109,7 +111,7 @@ SUPERVISOR
 
         my $previous_dir = getcwd;
         chdir $build_dir;
-        system("bash -c 'docker build -t $tag . &> $log_file'");
+        system("bash -c '$DOCKER_COMMAND build -t $tag . &> $log_file'");
         chdir $previous_dir;
     },
     'setup' => sub {
@@ -167,7 +169,7 @@ BUILD
 
         my $previous_dir = getcwd;
         chdir $build_dir;
-        system("bash -c 'docker build -t $tag . &> $log_file'");
+        system("bash -c '$DOCKER_COMMAND build -t $tag . &> $log_file'");
         chdir $previous_dir;
 
         print $ALL_ENV_VARS;
@@ -295,7 +297,7 @@ sub generate_secret {
 sub run_in_container {
     my ( $container_id, @command_and_args ) = @_;
 
-    my $port = `docker port $container_id 22`;
+    my $port = `$DOCKER_COMMAND port $container_id 22`;
     chomp($port);
 
     exec(
