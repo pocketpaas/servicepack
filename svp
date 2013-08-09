@@ -16,7 +16,7 @@ my $OS_MAP = {
     'ubuntu/12.10' => 'ubuntu:12.10',
 };
 
-my $DOCKER_COMMAND = $ENV{DOCKER_COMMAND} || 'docker -H tcp://127.0.0.1:4243';
+my $DOCKER_COMMAND = $ENV{DOCKER_COMMAND} || 'docker';
 
 my %opts;
 
