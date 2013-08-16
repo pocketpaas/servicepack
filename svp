@@ -14,7 +14,13 @@ our $VERSION = '0.1';
 my $OS_MAP = {
     'ubuntu/13.04' => 'lopter/raring-base:latest',
     'ubuntu/12.10' => 'ubuntu:12.10',
+    'ubuntu/12.04' => 'ubuntu:12.04',
 };
+
+my $OS_EXTRA
+    = { 'ubuntu/12.04' =>
+        'run     echo "deb http://archive.ubuntu.com/ubuntu precise main universe" > /etc/apt/sources.list',
+    };
 
 my $DOCKER_COMMAND = $ENV{DOCKER_COMMAND} || 'docker';
 
@@ -53,10 +59,13 @@ my $commands = {
 
         system("tar -C $dir_to_build/ -cf - . | tar -C $build_dir -xf -");
 
+        my $os_extra = $OS_EXTRA->{$os} || '';
+
         # TODO make this dockerfile not ubuntu specific
         open my $dockerfile, ">", "$build_dir/Dockerfile";
         print $dockerfile <<BUILD;
 from $docker_base
+$os_extra
 run     apt-get update
 
 # setup sshd and supervisor
@@ -98,13 +107,36 @@ command=/usr/sbin/sshd -D
 stdout_logfile=/var/log/supervisor/%(program_name)s.log
 stderr_logfile=/var/log/supervisor/%(program_name)s.log
 autorestart=true
+SUPERVISOR
+
+        my $components = `$query_script components`;
+        chomp($components);
+
+        if ($components) {
+            foreach my $component ( split( /\n/, $components ) ) {
+                print $supervisor <<COMPONENT;
+
+[program:$component]
+
+command=/service/bin/run $component
+stdout_logfile=/var/log/supervisor/%(program_name)s.log
+stderr_logfile=/var/log/supervisor/%(program_name)s.log
+autorestart=true
+COMPONENT
+            }
+        }
+        else {
+            print $supervisor <<SINGLE_COMPONENT;
 
 [program:service]
+
 command=/service/bin/run
 stdout_logfile=/var/log/supervisor/%(program_name)s.log
 stderr_logfile=/var/log/supervisor/%(program_name)s.log
 autorestart=true
-SUPERVISOR
+SINGLE_COMPONENT
+        }
+
         close $supervisor;
 
         DEBUG("docker build dir: $build_dir");
