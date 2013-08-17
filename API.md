@@ -8,8 +8,7 @@
 ## Engine queries secret requirements
 
     $ ./bin/query secrets
-    mysql_root_password length=12
-    mysql_user_password length=12
+    MYSQL_PASSWORD
 
 ## Engine spins up container with contents of servicepack and then runs the build script inside.
 
@@ -17,7 +16,7 @@
 
 This script should do everything to set up the service, including installing packages and setting configuration.
 
-Environment variables corresponding to the generated secrets will be present.  For example if the secret 'mysql\_root\_password' is requested, then MYSQL\_ROOT\_PASSWORD will be in the environment with a generated password inside.
+Environment variables corresponding to the generated secrets will be present.  For example if the secret 'MYSQL\_PASSWORD' is requested, then MYSQL\_PASSWORD will be in the environment with a generated password inside.
 
 ### Phased build
 
@@ -58,24 +57,59 @@ These variables can contain special keys to instruct the engine where to insert 
 
     $ ./bin/extra foo \[args]
 
+# Multi-component services
+
+If a service requires more than one process (e.g. hipache), the query script can respond to `components` and provide a list of component names.
+
+    $ ./bin/query components
+    hipache
+    redis
+
+Then, when running the service, the engine should pass the component name to the `run` script, like this:
+
+    $ ./bin/run hipache
+    $ ./bin/run redis
+
 # Running 'servicepack'
 
 ## Building a service
 
-Pass in the servicepack directory and the docker repo and tag to use.  The output will be the environment variables that should 
+Building a service happens in two phases:
 
-    $ servicepack build pack_dir repo [tag]
+1. Build the base image with the service software.  This image will be the base for all services of this type.
+1. Setup an image instance.
+
+### Build the base image
+
+Pass in the servicepack directory and the docker repo and tag to use.
+
+    $ svp build -b pack_dir -t repo[:tag]
 
 Example:
 
     $ git clone https://github.com/pocketpaas/servicepack-mysql.git
-    $ servicepack build servicepack-mysql mysql
-    MYSQL_ROOT_PASSWORD=ifjalfjalqwj
-    MYSQL_USER_PASSWORD=3fjq3ifjalwj
-    MYSQL_PORT=3306
-    MYSQL_USER=user
-    MYSQL_HOST=%IP
+    $ svp build -b servicepack-mysql -t mysql
+    ...
     $ docker images
     REPOSITORY           TAG         ID                  CREATED             SIZE
-    servicepack/mysql    latest      f42b0cb83738        2 seconds ago       8.678 MB (virtual 200 MB)
+    mysql                latest      f42b0cb83738        2 seconds ago       8.678 MB (virtual 200 MB)
 
+### Setup a service instance based on the base image
+
+Pass in the servicepack directory, the base image, and the docker repo and tag to use.  The output will be the environment variables that should 
+
+    $ svp setup -b pack_dir -i baserepo[:tag] -t repo[:tag]
+
+Example:
+
+    $ svp setup -i mysvc -b servicepack-mysql -t mysql
+    MYSQL_PASSWORD=3fjq3ifjalwj
+    MYSQL_PORT=3306
+    MYSQL_DATABASE=db
+    MYSQL_USER=user
+    MYSQL_HOST=%IP
+    ...
+    $ docker images
+    REPOSITORY           TAG         ID                  CREATED             SIZE
+    mysql                latest      f42b0cb83738        2 minutes ago       8.678 MB (virtual 200 MB)
+    mysvc                latest      24b0fcb38877        2 seconds ago       8.678 MB (virtual 200 MB)
