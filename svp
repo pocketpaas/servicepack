@@ -62,6 +62,8 @@ my $commands = {
         my $os_extra = $OS_EXTRA->{$os} || '';
 
         # TODO make this dockerfile not ubuntu specific
+        # TODO move the ssh key setup to the 'setup' phase so that the base
+        #      image can be shared
         open my $dockerfile, ">", "$build_dir/Dockerfile";
         print $dockerfile <<BUILD;
 from $docker_base
