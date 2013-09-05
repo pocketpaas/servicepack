@@ -77,13 +77,6 @@ run     mkdir -p /var/log/supervisor
 run     locale-gen en_US en_US.UTF-8
 add     supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# configure keyed ssh access
-run     mkdir -p /root/.ssh
-run     chmod 600 /root/.ssh
-add     authorized_keys /root/.ssh/authorized_keys
-run     chmod 600 /root/.ssh/authorized_keys
-run     chown root.root /root/.ssh/authorized_keys
-
 # add service scripts and build
 add     . /service
 run     /service/bin/build base
@@ -91,13 +84,6 @@ expose  22
 cmd     ["/usr/bin/supervisord", "-n"]
 BUILD
         close $dockerfile;
-
-        if ( $opts{'ssh-pubkey-file'} ) {
-            copy( $opts{'ssh-pubkey-file'}, "$build_dir/authorized_keys" );
-        }
-        else {
-            copy( generate_ssh_key(), "$build_dir/authorized_keys" );
-        }
 
         open my $supervisor, ">", "$build_dir/supervisord.conf";
         print $supervisor <<SUPERVISOR;
@@ -192,12 +178,28 @@ SINGLE_COMPONENT
         print $dockerfile <<BUILD;
 from $image
 #add     . /service
+
+# configure keyed ssh access
+run     mkdir -p /root/.ssh
+run     chmod 600 /root/.ssh
+add     authorized_keys /root/.ssh/authorized_keys
+run     chmod 600 /root/.ssh/authorized_keys
+run     chown root.root /root/.ssh/authorized_keys
+
+# set up container
 $SECRET_VARS
 run     /service/bin/build setup
 expose  22
 cmd     ["/usr/bin/supervisord", "-n"]
 BUILD
         close $dockerfile;
+
+        if ( $opts{'ssh-pubkey-file'} ) {
+            copy( $opts{'ssh-pubkey-file'}, "$build_dir/authorized_keys" );
+        }
+        else {
+            copy( generate_ssh_key(), "$build_dir/authorized_keys" );
+        }
 
         DEBUG("docker build dir: $build_dir");
 
