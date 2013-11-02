@@ -210,6 +210,18 @@ BUILD
 
         print $ALL_ENV_VARS;
     },
+    'ports' => sub {
+        my $argv = shift;
+
+        GetOptionsFromArray( $argv, \%opts, 'build-dir|b=s' );
+
+        my $dir_to_build = $opts{'build-dir'};
+
+        my $query_script = "$dir_to_build/bin/query";
+        -e $query_script || die "Unable to find query script.";
+
+        system("$query_script ports");
+    },
     'client' => sub {
         my $argv = shift;
 
@@ -278,8 +290,8 @@ sub run_svp {
 
         # parse global options first
         Getopt::Long::Configure('pass_through');
-        GetOptionsFromArray( \@argv, \%opts, 'verbose', 'quiet',
-            'dry-run', 'help', 'version', 'ssh-pubkey-file|s=s' );
+        GetOptionsFromArray( \@argv, \%opts, 'verbose', 'quiet', 'dry-run',
+            'help', 'version', 'ssh-pubkey-file|s=s' );
         Getopt::Long::Configure('no_pass_through');
     }
 
@@ -333,8 +345,9 @@ sub generate_secret {
 sub run_in_container {
     my ( $container_id, @command_and_args ) = @_;
 
-    my $port = `$DOCKER_COMMAND port $container_id 22`;
-    chomp($port);
+    my $address_and_port = `$DOCKER_COMMAND port $container_id 22`;
+    chomp($address_and_port);
+    my ($address, $port) = split(/:/, $address_and_port);
 
     exec(
         qw(ssh -t -i),      "$ENV{HOME}/.servicepack/key/id_rsa",
