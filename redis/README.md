@@ -1,1 +1,0 @@
-A servicepack for Redis.
