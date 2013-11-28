@@ -53,7 +53,7 @@ my $commands = {
         # check the version of the servicepack API
         my $version = `$query_script version`;
         chomp($version);
-        if (! ($version eq '' || $version eq '0')) {
+        if ( !( $version eq '' || $version eq '0' ) ) {
             die "Unable to understand servicepack version $version";
         }
 
@@ -168,7 +168,7 @@ SINGLE_COMPONENT
         # check the version of the servicepack API
         my $version = `$query_script version`;
         chomp($version);
-        if (! ($version eq '' || $version eq '0')) {
+        if ( !( $version eq '' || $version eq '0' ) ) {
             die "Unable to understand servicepack version $version";
         }
 
@@ -360,7 +360,7 @@ sub run_in_container {
 
     my $address_and_port = `$DOCKER_COMMAND port $container_id 22`;
     chomp($address_and_port);
-    my ($address, $port) = split(/:/, $address_and_port);
+    my ( $address, $port ) = split( /:/, $address_and_port );
 
     exec(
         qw(ssh -t -i),      "$ENV{HOME}/.servicepack/key/id_rsa",
