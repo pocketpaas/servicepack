@@ -8,6 +8,7 @@ use Cwd;
 use Getopt::Long qw(GetOptionsFromArray);
 use File::Copy;
 use File::Path qw(mkpath);
+use Pod::Usage;
 
 our $VERSION = '0.1';
 
@@ -387,3 +388,155 @@ sub DEBUG {
     printf STDERR "DEBUG: %s\n", shift if $opts{verbose};
 }
 
+__END__
+
+=head1 NAME
+
+    svp - An driver for servicepacks in perl
+
+=head1 SYNOPSIS
+
+usage: svp <command> [--version] [--help] [<args>]
+
+The commands are:
+
+   build      Build the base docker image for the service
+   setup      Create a service instance image
+   ports      Show what ports the service exposes
+   client     Open a client to a running service
+   shell      Open a shell in the running service container
+
+See 'svp help <command>' for more information on a specific command.
+
+=head1 DESCRIPTION
+
+Creates the images for running a service and provides facilities for
+interacting with the running container.
+
+=head1 COMMON OPTIONS
+
+All the subcommands implemented by dfm have the following options:
+
+  --version     Print version information.
+
+=head1 HELP
+
+All Options:
+
+  svp help <subcommand>
+  svp <subcommand> --help
+
+Examples:
+
+  svp build --help
+  svp help build
+
+Description:
+
+This shows the help for a particular subcommand.
+
+=head1 BUILD
+
+Required Options:
+
+  -b --build-dir <servicepack_dir>  Directory with scripts that conform to the
+                                    servicepack API.
+  -t --tag <repo>[:<tag>]           Docker repo/tag to apply to the final image.
+
+Examples:
+
+  $ svp build -b servicepack_mysql -t base/mysql
+
+Description:
+
+This builds the base image for a particular service type, that will be shared
+among all services of a particular type.
+
+=head1 SETUP
+
+Required Options:
+
+  -b --build-dir <servicepack_dir>  Directory with scripts that conform to the
+                                    servicepack API.
+  -i --image <repo>[:<tag>]         Base build image (built with the 'build' command).
+  -t --tag <repo>[:<tag>]           Docker repo/tag to apply to the final image.
+
+Examples:
+
+  $ svp setup -b servicepack_mysql -i base/mysql -t mysql/mysvc
+
+Description:
+
+This builds the base image for a particular service type, that will be shared
+among all services of a particular type.
+
+This builds the specific instance image based on a base image.  This will
+output any extra environment variables that must be passed to 'docker run' so
+that linked containers can access them.
+
+=head1 PORTS
+
+Required Options:
+
+  -b --build-dir <servicepack_dir>  Directory with scripts that conform to the
+                                    servicepack API.
+
+Examples:
+
+  $ svp setup -b servicepack_mysql
+  3306
+
+Description:
+
+This shows the ports that the container should expose and that the service will listen on..
+
+=head1 CLIENT
+
+Required Options:
+
+  -c --container <container_id>     Running container ID.
+
+Examples:
+
+  $ svp client -c 0fb2c55748aa
+  Warning: Permanently added '[localhost]:49153' (ECDSA) to the list of known hosts.
+  mysql> 
+
+Description:
+
+This connects to the running container and runs the client program appropriate for the service.
+
+=head1 SHELL
+
+Required Options:
+
+  -c --container <container_id>     Running container ID.
+
+Examples:
+
+  $ svp shell -c 0fb2c55748aa
+  Warning: Permanently added '[localhost]:49153' (ECDSA) to the list of known hosts.
+  Welcome to Ubuntu 12.04 LTS (GNU/Linux 3.8.0-32-generic x86_64)
+  
+   * Documentation:  https://help.ubuntu.com/
+  Last login: Thu Nov 28 20:49:56 2013 from 172.17.42.1
+  root@0fb2c55748aa:~# 
+
+
+Description:
+
+This connects to the running container and runs a shell.
+
+=head1 AUTHOR
+
+Nate Jones <nate@endot.org>
+
+=head1 COPYRIGHT
+
+Copyright (c) 2013 L</AUTHOR> as listed above.
+
+=head1 LICENSE
+
+This program is free software distributed under the MIT License.
+
+=cut
