@@ -49,6 +49,13 @@ my $commands = {
 
         -e $query_script || die "Unable to find query script.";
 
+        # check the version of the servicepack API
+        my $version = `$query_script version`;
+        chomp($version);
+        if (! ($version eq '' || $version eq '0')) {
+            die "Unable to understand servicepack version $version";
+        }
+
         my $os = `$query_script os`;
         chomp($os);
         $os || die "OS not defined.\n";
@@ -156,6 +163,13 @@ SINGLE_COMPONENT
 
         my $query_script = "$dir_to_build/bin/query";
         -e $query_script || die "Unable to find query script.";
+
+        # check the version of the servicepack API
+        my $version = `$query_script version`;
+        chomp($version);
+        if (! ($version eq '' || $version eq '0')) {
+            die "Unable to understand servicepack version $version";
+        }
 
         my $secret_names = `$query_script secrets`;
         chomp($secret_names);
