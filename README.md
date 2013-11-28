@@ -2,7 +2,7 @@
 
 [Buildpacks](https://devcenter.heroku.com/articles/buildpacks) for services.
 
-Check out the [API](API.md).
+Check out the [API](API.md) and the [Quickstart](QUICKSTART.md).
 
 Sample servicepacks:
 
