@@ -31,9 +31,7 @@ The build can happen in two phases, if desired.  The phase is passed in as an ar
 These variables can contain special keys to instruct the engine where to insert container information, such as %IP for the ip address.
 
     $ ./bin/query env
-    MYSQL_PORT=3306
     MYSQL_USER=user
-    MYSQL_HOST=%IP
 
 ## Engine starts container and runs the service
 
@@ -41,21 +39,9 @@ These variables can contain special keys to instruct the engine where to insert 
 
 ## Other commands
 
-### Backup
-
-    $ ./bin/backup
-
 ### Client connection
 
     $ ./bin/client
-
-### Extra
-
-    $ ./bin/extra help
-    foo: does the foo
-    baz: also baz is possible
-
-    $ ./bin/extra foo \[args]
 
 # Multi-component services
 
@@ -104,10 +90,8 @@ Example:
 
     $ svp setup -i mysvc -b servicepack-mysql -t mysql
     MYSQL_PASSWORD=3fjq3ifjalwj
-    MYSQL_PORT=3306
     MYSQL_DATABASE=db
     MYSQL_USER=user
-    MYSQL_HOST=%IP
     ...
     $ docker images
     REPOSITORY           TAG         ID                  CREATED             SIZE
